@@ -1,0 +1,10 @@
+servico: pedidos-api
+db:
+  host: db-principal
+  pool_max: 20          # conexões máximas com o banco
+  statement_timeout_ms: 5000
+http:
+  timeout_ms: 3000
+dependencias:
+  pagamentos_api: http://pagamentos-api:8080
+  estoque_fila: estoque-reservas

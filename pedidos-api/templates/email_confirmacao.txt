@@ -1,0 +1,4 @@
+Assunto: Pedido recebido
+
+Olá {{nome}}, recebemos seu pedido {{pedido_id}}.
+Em breve vc recebera a confirmacao do pagamento.
