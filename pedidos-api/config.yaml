@@ -1,7 +1,7 @@
 servico: pedidos-api
 db:
   host: db-principal
-  pool_max: 20          # conexões máximas com o banco
+  pool_max: 10          # conexões máximas com o banco
   statement_timeout_ms: 5000
 http:
   timeout_ms: 3000
