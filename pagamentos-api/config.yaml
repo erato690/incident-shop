@@ -1,0 +1,7 @@
+servico: pagamentos-api
+gateway:
+  nome: PagaFacil
+  url: https://api.pagafacil.com.br/v2/cobrancas
+  timeout_ms: 4000
+  retries: 3
+  rate_limit_por_minuto: 100   # limite contratado com o PagaFácil
