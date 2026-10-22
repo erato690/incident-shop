@@ -1,0 +1,6 @@
+servico: auth-api
+idp:
+  jwks_url: https://idp.loja.internal/.well-known/jwks.json
+  timeout_ms: 2000
+container:
+  limite_memoria: 512Mi
