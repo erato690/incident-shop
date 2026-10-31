@@ -70,3 +70,38 @@ pode ser usada para subir o limite, mas é opcional.
 
 O histórico é gerado de forma determinística (datas fixas em outubro de 2026)
 por `criar_repo.sh <diretorio>`.
+
+## API HTTP
+
+Além do histórico git, o repositório inclui uma API FastAPI (`api/`) que
+simula logs, métricas e deploys da loja para os 8 cenários de incidente do
+laboratório. O agente pode consultá-la ao vivo (ou usar dados gravados a
+partir dela) em vez de, ou em complemento a, logs reais.
+
+Suba localmente com `uvicorn api.main:app --reload` (requer `pip install -r
+requirements.txt`) ou via Docker (`docker build -t incident-shop . && docker
+run -p 8000:8000 incident-shop`).
+
+Endpoints:
+
+- `POST /cenarios/{cenario_id}`: inicia um cenário (reseta o estado anterior).
+  `cenario_id` é um dos 8 ids em `api/cenarios.py` (ex.: `deploy_com_bug`,
+  `pool_esgotado`, `env_var_faltando`, `gateway_fora`, `vazamento_memoria`,
+  `certificado_expirado`, `rate_limit`, `banco_lento_com_deploy`). Retorna 404
+  se o id não existir, ou 202 com título e duração do cenário.
+- `GET /logs`: logs acumulados desde o início do cenário ativo até o minuto
+  atual. Vazio se nenhum cenário estiver ativo.
+- `GET /metricas`: métricas apenas do minuto atual do cenário ativo. Se nenhum
+  cenário estiver ativo, retorna métricas baseline saudáveis.
+- `GET /deploys`: histórico estático de tags/deploys dos quatro serviços
+  (independe do cenário ativo).
+
+Exemplo de uso — iniciar o cenário `pool_esgotado` e consultar os logs:
+
+```bash
+curl -s -X POST localhost:8000/cenarios/pool_esgotado
+# {"cenario":"pool_esgotado","titulo":"Pool de conexões esgotado no pico","duracao_min":30,"iniciado_em":"2026-10-31T12:00:00+00:00"}
+
+curl -s localhost:8000/logs
+# {"logs":[{"minuto":0,"servico":"pedidos-api","nivel":"ERROR","mensagem":"HikariPool-1 - Connection is not available, ..."}]}
+```
