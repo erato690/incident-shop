@@ -35,7 +35,9 @@ def criar_fonte() -> FonteDados:
 
         return FonteSimulada()
     if nome == "servicos":
-        raise NotImplementedError(
-            "FONTE_DADOS=servicos ainda não existe; veja docs/opcao2-servicos-reais.md"
-        )
+        from api.fontes.servicos import FonteServicos
+
+        fonte = FonteServicos()
+        fonte.verificar()
+        return fonte
     raise ValueError(f"FONTE_DADOS inválida: '{nome}'. Use 'simulada' ou 'servicos'.")
