@@ -48,7 +48,7 @@
 
 ## Phase 5: User Story 3 - Gravação offline (P2)
 
-- [ ] T014 [US3] `scripts/gravar_dados_dummy.py <pasta> [--url URL]` (sem URL usa a app em
+- [X] T014 [US3] `scripts/gravar_dados_dummy.py <pasta> [--url URL]` (sem URL usa a app em
   processo) gravando `<cenario>.json` no formato de `docs/contrato-api.md`; teste em
   `tests/test_gravacao.py` (8 arquivos; duas gravações idênticas)
 
