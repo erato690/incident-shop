@@ -63,7 +63,7 @@
 
 ## Phase 7: User Story 5 - Imagem para o Railway (P3)
 
-- [ ] T018 [US5] `Dockerfile` (dependências fixadas, usuário sem privilégio, `PORT`) e
+- [X] T018 [US5] `Dockerfile` (dependências fixadas, usuário sem privilégio, `PORT`) e
   `railway.toml` (verificação de saúde em `/saude`); verificar `docker build` e `docker run -e
   PORT=9000` localmente. Deploy público só com confirmação do Rafael.
 
