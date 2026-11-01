@@ -2,7 +2,8 @@
 
 Este é um repositório **fictício**, criado apenas para que o professor possa
 validar o projeto de curso "agente investigador de incidentes" (AI Agents com
-LangChain, Infnet). Nenhum código aqui roda em produção: os arquivos são
+LangChain, Infnet). Os serviços das pastas `pedidos-api`, `pagamentos-api`,
+`estoque-worker` e `auth-api` não rodam: seus arquivos são
 pequenos e servem só para que o histórico git conte uma história coerente com
 os cenários de incidente do laboratório. O agente consulta este repositório
 pela API REST **real** do GitHub para descobrir o que mudou antes de um incidente.
@@ -68,40 +69,82 @@ pode ser usada para subir o limite, mas é opcional.
 
 ## Recriar o histórico
 
-O histórico é gerado de forma determinística (datas fixas em outubro de 2026)
-por `criar_repo.sh <diretorio>`.
+O histórico foi gerado de forma determinística (datas fixas em outubro de 2026) pelo script
+`criar_repo.sh`, que não faz parte deste repositório.
 
 ## API HTTP
 
-Além do histórico git, o repositório inclui uma API FastAPI (`api/`) que
-simula logs, métricas e deploys da loja para os 8 cenários de incidente do
-laboratório. O agente pode consultá-la ao vivo (ou usar dados gravados a
-partir dela) em vez de, ou em complemento a, logs reais.
+Além do histórico git, o repositório inclui uma interface de programação de aplicações (API)
+HTTP em FastAPI (`api/`) que fornece logs, métricas e deploys da loja para os 8 cenários de
+incidente. A API é **só de leitura** (todas as rotas são `GET`), **determinística** (a mesma
+requisição devolve sempre o mesmo corpo, sem relógio real) e usa uma linha do tempo fixa de
+outubro de 2026. Os deploys são os 9 reais do repositório (tag, commit, autor e mensagem
+batem com o git). O agente pode consultá-la ao vivo ou usar dados gravados a partir dela.
 
-Suba localmente com `uvicorn api.main:app --reload` (requer `pip install -r
-requirements.txt`) ou via Docker (`docker build -t incident-shop . && docker
-run -p 8000:8000 incident-shop`).
+Documentação:
 
-Endpoints:
+- [`docs/contrato-api.md`](docs/contrato-api.md): contrato 1.0.0 com parâmetros, regras de
+  janela, erros e exemplos.
+- [`docs/openapi.json`](docs/openapi.json): especificação OpenAPI gerada pelo FastAPI; um teste
+  garante que ela bate com a API.
+- [`docs/opcao2-servicos-reais.md`](docs/opcao2-servicos-reais.md): como serviços reais
+  responderiam pelas mesmas rotas (opção 2, ainda não implementada).
 
-- `POST /cenarios/{cenario_id}`: inicia um cenário (reseta o estado anterior).
-  `cenario_id` é um dos 8 ids em `api/cenarios.py` (ex.: `deploy_com_bug`,
-  `pool_esgotado`, `env_var_faltando`, `gateway_fora`, `vazamento_memoria`,
-  `certificado_expirado`, `rate_limit`, `banco_lento_com_deploy`). Retorna 404
-  se o id não existir, ou 202 com título e duração do cenário.
-- `GET /logs`: logs acumulados desde o início do cenário ativo até o minuto
-  atual. Vazio se nenhum cenário estiver ativo.
-- `GET /metricas`: métricas apenas do minuto atual do cenário ativo. Se nenhum
-  cenário estiver ativo, retorna métricas baseline saudáveis.
-- `GET /deploys`: histórico estático de tags/deploys dos quatro serviços
-  (independe do cenário ativo).
+Rotas:
 
-Exemplo de uso — iniciar o cenário `pool_esgotado` e consultar os logs:
+| Rota | O que devolve |
+|---|---|
+| `GET /saude` | Estado da API, fonte de dados e versão do contrato |
+| `GET /cenarios` | Os 8 cenários com a janela de tempo de cada um (sem a causa raiz) |
+| `GET /logs` | Logs por janela, com filtros `servico`, `nivel` e `limite` |
+| `GET /metricas` | Séries de um ponto por minuto, com resumo, e filtros `servico` e `metrica` |
+| `GET /deploys` | Deploys reais do repositório, com filtros `servico` e janela |
+
+A janela vem de `cenario` (id de `GET /cenarios`) ou do par `inicio` e `fim` (ISO 8601; sem
+fuso vale `-03:00`; no máximo 6 horas). Exemplo:
 
 ```bash
-curl -s -X POST localhost:8000/cenarios/pool_esgotado
-# {"cenario":"pool_esgotado","titulo":"Pool de conexões esgotado no pico","duracao_min":30,"iniciado_em":"2026-10-31T12:00:00+00:00"}
-
-curl -s localhost:8000/logs
-# {"logs":[{"minuto":0,"servico":"pedidos-api","nivel":"ERROR","mensagem":"HikariPool-1 - Connection is not available, ..."}]}
+curl -s 'localhost:8000/logs?cenario=pool_esgotado&servico=pedidos-api&nivel=ERROR&limite=1'
+curl -s 'localhost:8000/deploys?cenario=pool_esgotado'
 ```
+
+### Rodar localmente
+
+```bash
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements-dev.txt   # inclui requirements.txt, pytest e httpx
+uvicorn api.main:app --reload         # http://localhost:8000 (documentação interativa em /docs)
+```
+
+### Testes
+
+```bash
+pytest -q
+```
+
+Os testes rodam sem rede (usam o `TestClient` do FastAPI). Os que comparam deploys com o git
+são pulados quando não há pasta `.git`; com ela, as tags dos serviços precisam existir.
+
+### Gravar dados para o modo offline
+
+```bash
+python scripts/gravar_dados_dummy.py dados_dummy                       # app em processo
+python scripts/gravar_dados_dummy.py dados_dummy --url http://localhost:8000
+```
+
+Grava `dados_dummy/<cenario>.json` (logs, métricas e deploys de cada cenário). Gravar duas vezes
+produz arquivos idênticos. Se mudar rotas ou campos, atualize o OpenAPI com
+`python scripts/exportar_openapi.py`.
+
+### Docker e Railway
+
+```bash
+docker build -t incident-shop .
+docker run --rm -e PORT=9000 -p 9000:9000 incident-shop   # a porta vem da variável PORT (padrão 8000)
+curl -s localhost:9000/saude
+```
+
+A imagem usa `python:3.12-slim`, dependências fixadas e um usuário sem privilégio. O
+`railway.toml` aponta para o `Dockerfile` e usa `/saude` como verificação de saúde; o Railway
+define `PORT` em tempo de execução. O deploy público é feito **manualmente**, por decisão do
+responsável; nada neste repositório publica a API sozinho.
