@@ -96,8 +96,8 @@ def _banco_lento(c: Cenario, m: datetime, rng: Random) -> Efeito:
     espera = 30 + 60 * int((m - reindexacao) / MINUTO)
     e.logs.append(LogEfeito(
         "estoque-worker", "WARN",
-        f"lock wait na tabela estoque há {espera}s (processo de reindexação noturna ativo: "
-        "REINDEX TABLE estoque em andamento no db-principal)",
+        f"lock wait na tabela estoque há {espera}s (reindexação da tabela estoque em andamento no db-principal: "
+        "REINDEX TABLE estoque)",
     ))
     if m < c.sintoma_inicio:
         return e
@@ -190,7 +190,7 @@ def _certificado_expirado(c: Cenario, m: datetime, rng: Random) -> Efeito:
 def _vazamento_memoria(c: Cenario, m: datetime, rng: Random) -> Efeito:
     e = Efeito()
     deploy = _t(27, 11, 25)
-    if m < deploy:
+    if m < deploy or m >= c.sintoma_fim:
         return e
     if m < c.sintoma_inicio:  # memória sobe desde o deploy
         mem = min(55 + 1.1 * (m - deploy) / MINUTO, 98)
@@ -262,35 +262,35 @@ def _rate_limit(c: Cenario, m: datetime, rng: Random) -> Efeito:
 
 
 CENARIOS: list[Cenario] = [
-    Cenario("pool_esgotado", "Pool de conexões esgotado no pico", "pedidos-api",
+    Cenario("pool_esgotado", "Checkout lento e erros 500 no pedidos-api", "pedidos-api",
             _t(6, 13, 30), _t(6, 14, 30), _t(6, 14, 0), _t(6, 14, 30),
             "Pico de tráfego no pedidos-api esgotou o pool de conexões (máximo 10, reduzido pelo deploy v3.2.0).",
             _pool_esgotado),
-    Cenario("banco_lento_com_deploy", "Banco lento com deploy de distração", "pedidos-api",
+    Cenario("banco_lento_com_deploy", "Lentidão e timeouts no pedidos-api e no estoque-worker", "pedidos-api",
             _t(8, 15, 15), _t(8, 16, 15), _t(8, 15, 47), _t(8, 16, 12),
             "Reindexação no db-principal travou a tabela estoque; o deploy v3.2.1 não é a causa.",
             _banco_lento),
-    Cenario("deploy_com_bug", "NullPointerException após deploy", "pagamentos-api",
+    Cenario("deploy_com_bug", "Erros 500 ao confirmar pagamentos", "pagamentos-api",
             _t(14, 14, 15), _t(14, 15, 5), _t(14, 14, 38), _t(14, 15, 3),
             "O deploy v2.14.0 do pagamentos-api causa NullPointerException ao confirmar pagamento sem cupom.",
             _deploy_com_bug),
-    Cenario("env_var_faltando", "Variável de ambiente ausente", "estoque-worker",
+    Cenario("env_var_faltando", "Fila de reservas de estoque acumulando", "estoque-worker",
             _t(19, 16, 0), _t(19, 16, 45), _t(19, 16, 21), _t(19, 16, 41),
             "O deploy v1.6.0 do estoque-worker exige ESTOQUE_QUEUE_URL, não configurada no ambiente.",
             _env_var_faltando),
-    Cenario("certificado_expirado", "Certificado TLS expirado", "auth-api",
+    Cenario("certificado_expirado", "auth-api recusando validação de tokens", "auth-api",
             _t(23, 20, 30), _t(23, 21, 30), _t(23, 21, 0), _t(23, 21, 30),
             "O certificado TLS do idp.loja.internal expirou e o auth-api não valida tokens.",
             _certificado_expirado),
-    Cenario("vazamento_memoria", "Vazamento de memória com OOMKilled", "auth-api",
+    Cenario("vazamento_memoria", "auth-api reiniciando e com latência alta", "auth-api",
             _t(27, 11, 15), _t(27, 12, 55), _t(27, 12, 5), _t(27, 12, 53),
             "O deploy v1.8.0 do auth-api introduziu cache sem limite que vaza memória até OOMKilled.",
             _vazamento_memoria),
-    Cenario("gateway_fora", "Gateway de pagamento indisponível", "pagamentos-api",
+    Cenario("gateway_fora", "Erros 502 e timeouts nas cobranças", "pagamentos-api",
             _t(29, 8, 50), _t(29, 10, 40), _t(29, 9, 10), _t(29, 10, 20),
             "O gateway externo PagaFácil ficou indisponível (HTTP 503). Nenhuma mudança no código.",
             _gateway_fora),
-    Cenario("rate_limit", "Rate limit no gateway de pagamento", "pagamentos-api",
+    Cenario("rate_limit", "Cobranças recusadas em pico de tráfego", "pagamentos-api",
             _t(30, 19, 45), _t(30, 20, 30), _t(30, 20, 5), _t(30, 20, 25),
             "O tráfego estourou o limite de 100 requisições por minuto do PagaFácil (HTTP 429).",
             _rate_limit),

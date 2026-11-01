@@ -52,7 +52,7 @@ Lista os cenários e as janelas absolutas. Não expõe a causa raiz.
   "cenarios": [
     {
       "id": "pool_esgotado",
-      "titulo": "Pool de conexões esgotado no pico",
+      "titulo": "Checkout lento e erros 500 no pedidos-api",
       "servico": "pedidos-api",
       "sintoma_inicio": "2026-10-06T14:00:00-03:00",
       "janela": {"inicio": "2026-10-06T13:30:00-03:00", "fim": "2026-10-06T14:30:00-03:00"}
@@ -177,7 +177,7 @@ curl -s 'localhost:8000/deploys?cenario=pool_esgotado'
 }
 ```
 
-Os 9 deploys (horário do deploy em produção, depois da criação da tag):
+Os 9 deploys (horário do deploy em produção, no mesmo horário da tag ou depois):
 
 | Horário (-03:00) | Tag | Commit | Autor |
 |---|---|---|---|

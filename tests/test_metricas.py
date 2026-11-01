@@ -111,6 +111,17 @@ def test_vazamento_memoria(client):
     assert valores(rein, de="2026-10-27T12:05:00-03:00")[0] > 0
 
 
+def test_vazamento_memoria_saudavel_apos_sintoma_fim(client):
+    de, ate = "2026-10-27T12:53:00-03:00", "2026-10-27T12:55:00-03:00"
+    rein = serie(client, "vazamento_memoria", "auth-api", "reinicios")
+    assert sum(valores(rein, de=de, ate=ate)) == 0
+    mem = serie(client, "vazamento_memoria", "auth-api", "memoria")
+    assert max(valores(mem, de=de, ate=ate)) <= 62
+    r = client.get("/logs", params={"cenario": "vazamento_memoria", "servico": "auth-api",
+                                    "inicio": de, "fim": ate, "limite": 5000})
+    assert not any("OOMKilled" in l["mensagem"] or "GC overhead" in l["mensagem"] for l in r.json()["logs"])
+
+
 def test_gateway_fora(client):
     cpu = serie(client, "gateway_fora", "pagamentos-api", "cpu")
     assert max(valores(cpu)) < 45 and min(valores(cpu)) > 15

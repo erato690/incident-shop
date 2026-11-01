@@ -4,7 +4,7 @@ SINAIS = [
     ("pool_esgotado", "pedidos-api", "ERROR", "HikariPool-1 - Connection is not available"),
     ("banco_lento_com_deploy", "pedidos-api", "ERROR", "PSQLException"),
     ("banco_lento_com_deploy", "estoque-worker", "ERROR", "statement timeout"),
-    ("banco_lento_com_deploy", "estoque-worker", "WARN", "processo de reindexação noturna ativo"),
+    ("banco_lento_com_deploy", "estoque-worker", "WARN", "reindexação da tabela estoque em andamento no db-principal"),
     ("banco_lento_com_deploy", "estoque-worker", "WARN", "REINDEX TABLE estoque"),
     ("deploy_com_bug", "pagamentos-api", "ERROR", "NullPointerException"),
     ("deploy_com_bug", "pagamentos-api", "ERROR", "Cupom.getDesconto()"),
