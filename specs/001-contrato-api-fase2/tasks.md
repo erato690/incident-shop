@@ -70,7 +70,7 @@
 ## Phase 8: Polish
 
 - [X] T019 Atualizar `README.md` (novo contrato, rotas, como rodar, sem citar aulas)
-- [ ] T020 Revisão do diff (`ruflo-core:reviewer`) e `pytest -q` final
+- [X] T020 Revisão do diff (`ruflo-core:reviewer`) e `pytest -q` final
 
 ## Dependencies
 
