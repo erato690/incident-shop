@@ -1,0 +1,1072 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "incident-shop",
+    "description": "API só de leitura com logs, métricas e deploys da loja fictícia, consumida pelo incident-agent. Horários em ISO 8601 com fuso -03:00; a mesma requisição devolve sempre o mesmo corpo.",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/saude": {
+      "get": {
+        "summary": "Verifica se a API está no ar",
+        "description": "Devolve o estado da API, o nome da fonte de dados ativa e a versão do contrato.",
+        "operationId": "saude_saude_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespostaSaude"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cenarios": {
+      "get": {
+        "summary": "Lista os cenários e suas janelas",
+        "description": "Lista os 8 cenários de incidente com a janela de tempo de cada um. Não expõe a causa raiz.",
+        "operationId": "cenarios_cenarios_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespostaCenarios"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/logs": {
+      "get": {
+        "summary": "Consulta logs por janela",
+        "description": "Logs em ordem crescente de horário. Exige janela (`cenario` ou `inicio` e `fim`, até 6 horas).\n`total` conta todos os logs dos filtros; `truncado` indica que `total` passa de `limite`.",
+        "operationId": "logs_logs_get",
+        "parameters": [
+          {
+            "name": "cenario",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Id de um cenário de GET /cenarios.",
+              "title": "Cenario"
+            },
+            "description": "Id de um cenário de GET /cenarios."
+          },
+          {
+            "name": "servico",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "pedidos-api",
+                    "pagamentos-api",
+                    "estoque-worker",
+                    "auth-api"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filtra por serviço.",
+              "title": "Servico"
+            },
+            "description": "Filtra por serviço."
+          },
+          {
+            "name": "inicio",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Começo da janela (inclusivo); sem fuso vale -03:00.",
+              "title": "Inicio"
+            },
+            "description": "Começo da janela (inclusivo); sem fuso vale -03:00."
+          },
+          {
+            "name": "fim",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Fim da janela (exclusivo); sem fuso vale -03:00.",
+              "title": "Fim"
+            },
+            "description": "Fim da janela (exclusivo); sem fuso vale -03:00."
+          },
+          {
+            "name": "nivel",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "INFO",
+                    "WARN",
+                    "ERROR"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filtro exato de nível.",
+              "title": "Nivel"
+            },
+            "description": "Filtro exato de nível."
+          },
+          {
+            "name": "limite",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 5000,
+              "minimum": 1,
+              "description": "Máximo de logs devolvidos.",
+              "default": 500,
+              "title": "Limite"
+            },
+            "description": "Máximo de logs devolvidos."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespostaLogs"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "O `cenario` informado não existe."
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/metricas": {
+      "get": {
+        "summary": "Consulta métricas por janela",
+        "description": "Uma série por serviço e métrica, com um ponto por minuto da janela e um resumo.\nExige janela (`cenario` ou `inicio` e `fim`, até 6 horas).",
+        "operationId": "metricas_metricas_get",
+        "parameters": [
+          {
+            "name": "cenario",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Id de um cenário de GET /cenarios.",
+              "title": "Cenario"
+            },
+            "description": "Id de um cenário de GET /cenarios."
+          },
+          {
+            "name": "servico",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "pedidos-api",
+                    "pagamentos-api",
+                    "estoque-worker",
+                    "auth-api"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filtra por serviço.",
+              "title": "Servico"
+            },
+            "description": "Filtra por serviço."
+          },
+          {
+            "name": "inicio",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Começo da janela (inclusivo); sem fuso vale -03:00.",
+              "title": "Inicio"
+            },
+            "description": "Começo da janela (inclusivo); sem fuso vale -03:00."
+          },
+          {
+            "name": "fim",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Fim da janela (exclusivo); sem fuso vale -03:00.",
+              "title": "Fim"
+            },
+            "description": "Fim da janela (exclusivo); sem fuso vale -03:00."
+          },
+          {
+            "name": "metrica",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "requisicoes",
+                    "erros_5xx",
+                    "latencia_p95",
+                    "cpu",
+                    "memoria",
+                    "reinicios",
+                    "conexoes_db",
+                    "fila_mensagens"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Nome da métrica.",
+              "title": "Metrica"
+            },
+            "description": "Nome da métrica."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespostaMetricas"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "O `cenario` informado não existe."
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/deploys": {
+      "get": {
+        "summary": "Consulta deploys",
+        "description": "Deploys reais do repositório em ordem crescente de horário. Sem janela, devolve todo o histórico;\ncom só `inicio` ou só `fim`, o outro lado fica aberto.",
+        "operationId": "deploys_deploys_get",
+        "parameters": [
+          {
+            "name": "cenario",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Id de um cenário de GET /cenarios.",
+              "title": "Cenario"
+            },
+            "description": "Id de um cenário de GET /cenarios."
+          },
+          {
+            "name": "servico",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "pedidos-api",
+                    "pagamentos-api",
+                    "estoque-worker",
+                    "auth-api"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filtra por serviço.",
+              "title": "Servico"
+            },
+            "description": "Filtra por serviço."
+          },
+          {
+            "name": "inicio",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Começo da janela (inclusivo); sem fuso vale -03:00.",
+              "title": "Inicio"
+            },
+            "description": "Começo da janela (inclusivo); sem fuso vale -03:00."
+          },
+          {
+            "name": "fim",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Fim da janela (exclusivo); sem fuso vale -03:00.",
+              "title": "Fim"
+            },
+            "description": "Fim da janela (exclusivo); sem fuso vale -03:00."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespostaDeploys"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "O `cenario` informado não existe."
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CenarioPublico": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "titulo": {
+            "type": "string",
+            "title": "Titulo"
+          },
+          "servico": {
+            "type": "string",
+            "enum": [
+              "pedidos-api",
+              "pagamentos-api",
+              "estoque-worker",
+              "auth-api"
+            ],
+            "title": "Servico"
+          },
+          "sintoma_inicio": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Sintoma Inicio"
+          },
+          "janela": {
+            "$ref": "#/components/schemas/Janela"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "titulo",
+          "servico",
+          "sintoma_inicio",
+          "janela"
+        ],
+        "title": "CenarioPublico"
+      },
+      "ConsultaDeploys": {
+        "properties": {
+          "cenario": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cenario"
+          },
+          "servico": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "pedidos-api",
+                  "pagamentos-api",
+                  "estoque-worker",
+                  "auth-api"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Servico"
+          },
+          "inicio": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Inicio"
+          },
+          "fim": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fim"
+          }
+        },
+        "type": "object",
+        "required": [
+          "cenario",
+          "servico",
+          "inicio",
+          "fim"
+        ],
+        "title": "ConsultaDeploys"
+      },
+      "ConsultaLogs": {
+        "properties": {
+          "cenario": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cenario"
+          },
+          "servico": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "pedidos-api",
+                  "pagamentos-api",
+                  "estoque-worker",
+                  "auth-api"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Servico"
+          },
+          "nivel": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "INFO",
+                  "WARN",
+                  "ERROR"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nivel"
+          },
+          "inicio": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Inicio"
+          },
+          "fim": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Fim"
+          }
+        },
+        "type": "object",
+        "required": [
+          "cenario",
+          "servico",
+          "nivel",
+          "inicio",
+          "fim"
+        ],
+        "title": "ConsultaLogs"
+      },
+      "ConsultaMetricas": {
+        "properties": {
+          "cenario": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cenario"
+          },
+          "servico": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "pedidos-api",
+                  "pagamentos-api",
+                  "estoque-worker",
+                  "auth-api"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Servico"
+          },
+          "metrica": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "requisicoes",
+                  "erros_5xx",
+                  "latencia_p95",
+                  "cpu",
+                  "memoria",
+                  "reinicios",
+                  "conexoes_db",
+                  "fila_mensagens"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Metrica"
+          },
+          "inicio": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Inicio"
+          },
+          "fim": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Fim"
+          }
+        },
+        "type": "object",
+        "required": [
+          "cenario",
+          "servico",
+          "metrica",
+          "inicio",
+          "fim"
+        ],
+        "title": "ConsultaMetricas"
+      },
+      "Deploy": {
+        "properties": {
+          "horario": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Horario"
+          },
+          "servico": {
+            "type": "string",
+            "enum": [
+              "pedidos-api",
+              "pagamentos-api",
+              "estoque-worker",
+              "auth-api"
+            ],
+            "title": "Servico"
+          },
+          "versao": {
+            "type": "string",
+            "title": "Versao"
+          },
+          "tag": {
+            "type": "string",
+            "title": "Tag"
+          },
+          "commit": {
+            "type": "string",
+            "title": "Commit"
+          },
+          "autor": {
+            "type": "string",
+            "title": "Autor"
+          },
+          "mensagem": {
+            "type": "string",
+            "title": "Mensagem"
+          }
+        },
+        "type": "object",
+        "required": [
+          "horario",
+          "servico",
+          "versao",
+          "tag",
+          "commit",
+          "autor",
+          "mensagem"
+        ],
+        "title": "Deploy"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "Janela": {
+        "properties": {
+          "inicio": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Inicio"
+          },
+          "fim": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Fim"
+          }
+        },
+        "type": "object",
+        "required": [
+          "inicio",
+          "fim"
+        ],
+        "title": "Janela"
+      },
+      "Ponto": {
+        "properties": {
+          "horario": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Horario"
+          },
+          "valor": {
+            "type": "number",
+            "title": "Valor"
+          }
+        },
+        "type": "object",
+        "required": [
+          "horario",
+          "valor"
+        ],
+        "title": "Ponto"
+      },
+      "RegistroLog": {
+        "properties": {
+          "horario": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Horario"
+          },
+          "servico": {
+            "type": "string",
+            "enum": [
+              "pedidos-api",
+              "pagamentos-api",
+              "estoque-worker",
+              "auth-api"
+            ],
+            "title": "Servico"
+          },
+          "nivel": {
+            "type": "string",
+            "enum": [
+              "INFO",
+              "WARN",
+              "ERROR"
+            ],
+            "title": "Nivel"
+          },
+          "mensagem": {
+            "type": "string",
+            "title": "Mensagem"
+          }
+        },
+        "type": "object",
+        "required": [
+          "horario",
+          "servico",
+          "nivel",
+          "mensagem"
+        ],
+        "title": "RegistroLog"
+      },
+      "RespostaCenarios": {
+        "properties": {
+          "cenarios": {
+            "items": {
+              "$ref": "#/components/schemas/CenarioPublico"
+            },
+            "type": "array",
+            "title": "Cenarios"
+          }
+        },
+        "type": "object",
+        "required": [
+          "cenarios"
+        ],
+        "title": "RespostaCenarios"
+      },
+      "RespostaDeploys": {
+        "properties": {
+          "consulta": {
+            "$ref": "#/components/schemas/ConsultaDeploys"
+          },
+          "deploys": {
+            "items": {
+              "$ref": "#/components/schemas/Deploy"
+            },
+            "type": "array",
+            "title": "Deploys"
+          }
+        },
+        "type": "object",
+        "required": [
+          "consulta",
+          "deploys"
+        ],
+        "title": "RespostaDeploys"
+      },
+      "RespostaLogs": {
+        "properties": {
+          "consulta": {
+            "$ref": "#/components/schemas/ConsultaLogs"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "truncado": {
+            "type": "boolean",
+            "title": "Truncado"
+          },
+          "logs": {
+            "items": {
+              "$ref": "#/components/schemas/RegistroLog"
+            },
+            "type": "array",
+            "title": "Logs"
+          }
+        },
+        "type": "object",
+        "required": [
+          "consulta",
+          "total",
+          "truncado",
+          "logs"
+        ],
+        "title": "RespostaLogs"
+      },
+      "RespostaMetricas": {
+        "properties": {
+          "consulta": {
+            "$ref": "#/components/schemas/ConsultaMetricas"
+          },
+          "series": {
+            "items": {
+              "$ref": "#/components/schemas/SerieMetrica"
+            },
+            "type": "array",
+            "title": "Series"
+          }
+        },
+        "type": "object",
+        "required": [
+          "consulta",
+          "series"
+        ],
+        "title": "RespostaMetricas"
+      },
+      "RespostaSaude": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "const": "ok",
+            "title": "Status"
+          },
+          "fonte": {
+            "type": "string",
+            "title": "Fonte"
+          },
+          "versao_contrato": {
+            "type": "string",
+            "title": "Versao Contrato"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "fonte",
+          "versao_contrato"
+        ],
+        "title": "RespostaSaude"
+      },
+      "Resumo": {
+        "properties": {
+          "min": {
+            "type": "number",
+            "title": "Min"
+          },
+          "max": {
+            "type": "number",
+            "title": "Max"
+          },
+          "media": {
+            "type": "number",
+            "title": "Media"
+          },
+          "ultimo": {
+            "type": "number",
+            "title": "Ultimo"
+          }
+        },
+        "type": "object",
+        "required": [
+          "min",
+          "max",
+          "media",
+          "ultimo"
+        ],
+        "title": "Resumo"
+      },
+      "SerieMetrica": {
+        "properties": {
+          "servico": {
+            "type": "string",
+            "enum": [
+              "pedidos-api",
+              "pagamentos-api",
+              "estoque-worker",
+              "auth-api"
+            ],
+            "title": "Servico"
+          },
+          "metrica": {
+            "type": "string",
+            "enum": [
+              "requisicoes",
+              "erros_5xx",
+              "latencia_p95",
+              "cpu",
+              "memoria",
+              "reinicios",
+              "conexoes_db",
+              "fila_mensagens"
+            ],
+            "title": "Metrica"
+          },
+          "unidade": {
+            "type": "string",
+            "title": "Unidade"
+          },
+          "resumo": {
+            "$ref": "#/components/schemas/Resumo"
+          },
+          "pontos": {
+            "items": {
+              "$ref": "#/components/schemas/Ponto"
+            },
+            "type": "array",
+            "title": "Pontos"
+          }
+        },
+        "type": "object",
+        "required": [
+          "servico",
+          "metrica",
+          "unidade",
+          "resumo",
+          "pontos"
+        ],
+        "title": "SerieMetrica"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}
