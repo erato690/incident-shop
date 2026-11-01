@@ -56,7 +56,7 @@
 
 - [X] T015 [US4] `scripts/exportar_openapi.py`, `docs/openapi.json` e teste em
   `tests/test_contrato.py` (OpenAPI gerado igual ao arquivo)
-- [ ] T016 [P] [US4] Esqueleto `api/fontes/servicos.py` e `docs/opcao2-servicos-reais.md`
+- [X] T016 [P] [US4] Esqueleto `api/fontes/servicos.py` e `docs/opcao2-servicos-reais.md`
   (serviços reais, coleta de logs e métricas, injeção de falha, mesma interface); teste de fonte
   falsa injetada em `tests/test_fonte.py`
 - [ ] T017 [US4] Atualizar exemplos de `docs/contrato-api.md` com saídas reais da API
