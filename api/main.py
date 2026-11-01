@@ -1,105 +1,90 @@
-"""API HTTP que simula logs, métricas e deploys da loja fictícia para o laboratório.
+"""API HTTP só de leitura com logs, métricas e deploys da loja fictícia (contrato 1.0.0)."""
 
-Expõe 4 endpoints: iniciar um cenário, consultar logs acumulados, consultar
-métricas do minuto atual e listar o histórico (estático) de deploys.
-"""
+from datetime import datetime
+from functools import lru_cache
+from typing import Annotated
 
-import zlib
-from datetime import datetime, timezone
-from random import Random
+from fastapi import Depends, FastAPI, HTTPException, Query
 
-from fastapi import FastAPI, HTTPException
+from api.fontes import FonteDados, criar_fonte
+from api.janela import ErroJanela, resolver_janela
+from api.modelos import (
+    CenarioPublico, ConsultaDeploys, ConsultaLogs, ConsultaMetricas, Metrica, Nivel, RespostaCenarios,
+    RespostaDeploys, RespostaLogs, RespostaMetricas, RespostaSaude, Servico,
+)
 
-from api.cenarios import CENARIOS, Efeito
+VERSAO_CONTRATO = "1.0.0"
 
-app = FastAPI(title="incident-shop")
-
-# cache: dict[int minuto, Efeito]
-_estado = {"cenario_id": None, "inicio": None, "cache": {}}
-
-DEPLOYS = [
-    {"servico": "pedidos-api", "tag": "pedidos-api/v3.1.0", "data": "2026-10-01T10:00:00-03:00", "commit": None, "mensagem": "estado inicial saudável (baseline)"},
-    {"servico": "pagamentos-api", "tag": "pagamentos-api/v2.13.4", "data": "2026-10-12T10:00:00-03:00", "commit": None, "mensagem": "estado inicial saudável (baseline)"},
-    {"servico": "estoque-worker", "tag": "estoque-worker/v1.5.2", "data": "2026-10-16T10:00:00-03:00", "commit": None, "mensagem": "estado inicial saudável (baseline)"},
-    {"servico": "auth-api", "tag": "auth-api/v1.7.9", "data": "2026-10-22T10:00:00-03:00", "commit": None, "mensagem": "estado inicial saudável (baseline)"},
-    {"servico": "pedidos-api", "tag": "pedidos-api/v3.2.0", "data": "2026-10-06T09:50:00-03:00", "commit": None, "mensagem": "reduz pool máximo de 20 para 10"},
-    {"servico": "pedidos-api", "tag": "pedidos-api/v3.2.1", "data": "2026-10-08T15:40:00-03:00", "commit": "e90a4d7", "mensagem": "corrige texto do e-mail de confirmação"},
-    {"servico": "pagamentos-api", "tag": "pagamentos-api/v2.14.0", "data": "2026-10-14T14:30:00-03:00", "commit": "a1f3c9e", "mensagem": "aplica desconto de cupom na confirmação do pagamento"},
-    {"servico": "estoque-worker", "tag": "estoque-worker/v1.6.0", "data": "2026-10-19T16:15:00-03:00", "commit": "7bd0e21", "mensagem": "lê a URL da fila de uma variável de ambiente"},
-    {"servico": "auth-api", "tag": "auth-api/v1.8.0", "data": "2026-10-27T11:20:00-03:00", "commit": "c44e8b0", "mensagem": "adiciona cache em memória sem limite para tokens validados"},
-]
+app = FastAPI(title="incident-shop", version=VERSAO_CONTRATO)
 
 
-def _minuto_atual() -> int | None:
-    """Minuto decorrido desde o início do cenário ativo, truncado na duração."""
-    cenario_id = _estado["cenario_id"]
-    if cenario_id is None:
-        return None
-    cenario = CENARIOS[cenario_id]
-    decorridos = (datetime.now(timezone.utc) - _estado["inicio"]).total_seconds() // 60
-    return min(int(decorridos), cenario.duracao - 1)
+@lru_cache(maxsize=1)
+def _fonte_padrao() -> FonteDados:
+    return criar_fonte()
 
 
-def _efeito_do_minuto(m: int) -> Efeito:
-    """Calcula (e cacheia) o efeito do minuto m do cenário ativo."""
-    cache = _estado["cache"]
-    if m not in cache:
-        cenario = CENARIOS[_estado["cenario_id"]]
-        cache[m] = cenario.efeito(m, cenario.duracao, _estado["rng"])
-    return cache[m]
+def obter_fonte() -> FonteDados:
+    """Dependência das rotas; os testes a trocam com `app.dependency_overrides`."""
+    return _fonte_padrao()
 
 
-@app.post("/cenarios/{cenario_id}", status_code=202)
-def iniciar_cenario(cenario_id: str):
-    cenario = CENARIOS.get(cenario_id)
-    if cenario is None:
-        raise HTTPException(status_code=404, detail=f"cenário '{cenario_id}' não existe")
-
-    inicio = datetime.now(timezone.utc)
-    _estado["cenario_id"] = cenario_id
-    _estado["inicio"] = inicio
-    _estado["cache"] = {}
-    _estado["rng"] = Random(zlib.crc32(cenario_id.encode()))
-
-    return {
-        "cenario": cenario_id,
-        "titulo": cenario.titulo,
-        "duracao_min": cenario.duracao,
-        "iniciado_em": inicio.isoformat(),
-    }
+Fonte = Annotated[FonteDados, Depends(obter_fonte)]
+CenarioQ = Annotated[str | None, Query(description="Id de um cenário de GET /cenarios.")]
+ServicoQ = Annotated[Servico | None, Query(description="Filtra por serviço.")]
+InicioQ = Annotated[datetime | None, Query(description="Começo da janela (inclusivo); sem fuso vale -03:00.")]
+FimQ = Annotated[datetime | None, Query(description="Fim da janela (exclusivo); sem fuso vale -03:00.")]
 
 
-@app.get("/logs")
-def listar_logs():
-    t = _minuto_atual()
-    if t is None:
-        return {"logs": []}
-
-    logs = []
-    for m in range(0, t + 1):
-        efeito = _efeito_do_minuto(m)
-        for servico, nivel, mensagem in efeito.logs:
-            logs.append({"minuto": m, "servico": servico, "nivel": nivel, "mensagem": mensagem})
-    return {"logs": logs}
-
-
-@app.get("/metricas")
-def listar_metricas():
-    t = _minuto_atual()
-    if t is None:
-        return {"metricas": [
-            {"servico": "pedidos-api", "metrica": "Erros5xx", "valor": 0},
-            {"servico": "pedidos-api", "metrica": "LatenciaP95", "valor": 120},
-        ]}
-
-    efeito = _efeito_do_minuto(t)
-    metricas = [
-        {"servico": servico, "metrica": metrica, "valor": valor}
-        for (servico, metrica), valor in efeito.metricas.items()
-    ]
-    return {"metricas": metricas}
+def _janela(fonte: FonteDados, cenario: str | None, inicio, fim, exigir: bool):
+    do_cenario = None
+    if cenario is not None:
+        achado = next((c for c in fonte.cenarios() if c.id == cenario), None)
+        if achado is None:
+            raise HTTPException(status_code=404, detail=f"cenário '{cenario}' não existe")
+        do_cenario = (achado.janela.inicio, achado.janela.fim)
+    try:
+        return resolver_janela(do_cenario, inicio, fim, exigir)
+    except ErroJanela as erro:
+        detalhe = [{"loc": ["query", erro.campo], "msg": str(erro), "type": "value_error"}]
+        raise HTTPException(status_code=422, detail=detalhe) from erro
 
 
-@app.get("/deploys")
-def listar_deploys():
-    return {"deploys": DEPLOYS}
+@app.get("/saude", response_model=RespostaSaude)
+def saude(fonte: Fonte) -> RespostaSaude:
+    return RespostaSaude(status="ok", fonte=fonte.nome, versao_contrato=VERSAO_CONTRATO)
+
+
+@app.get("/cenarios", response_model=RespostaCenarios)
+def cenarios(fonte: Fonte) -> RespostaCenarios:
+    return RespostaCenarios(cenarios=fonte.cenarios())
+
+
+@app.get("/logs", response_model=RespostaLogs)
+def logs(
+    fonte: Fonte, cenario: CenarioQ = None, servico: ServicoQ = None, inicio: InicioQ = None,
+    fim: FimQ = None, nivel: Annotated[Nivel | None, Query(description="Filtro exato de nível.")] = None,
+    limite: Annotated[int, Query(ge=1, le=5000)] = 500,
+) -> RespostaLogs:
+    ini, fi = _janela(fonte, cenario, inicio, fim, exigir=True)
+    todos = fonte.logs(servico, nivel, ini, fi)
+    consulta = ConsultaLogs(cenario=cenario, servico=servico, nivel=nivel, inicio=ini, fim=fi)
+    return RespostaLogs(consulta=consulta, total=len(todos), truncado=len(todos) > limite, logs=todos[:limite])
+
+
+@app.get("/metricas", response_model=RespostaMetricas)
+def metricas(
+    fonte: Fonte, cenario: CenarioQ = None, servico: ServicoQ = None, inicio: InicioQ = None,
+    fim: FimQ = None, metrica: Annotated[Metrica | None, Query(description="Nome da métrica.")] = None,
+) -> RespostaMetricas:
+    ini, fi = _janela(fonte, cenario, inicio, fim, exigir=True)
+    consulta = ConsultaMetricas(cenario=cenario, servico=servico, metrica=metrica, inicio=ini, fim=fi)
+    return RespostaMetricas(consulta=consulta, series=fonte.metricas(servico, metrica, ini, fi))
+
+
+@app.get("/deploys", response_model=RespostaDeploys)
+def deploys(
+    fonte: Fonte, cenario: CenarioQ = None, servico: ServicoQ = None, inicio: InicioQ = None, fim: FimQ = None,
+) -> RespostaDeploys:
+    ini, fi = _janela(fonte, cenario, inicio, fim, exigir=False)
+    consulta = ConsultaDeploys(cenario=cenario, servico=servico, inicio=ini, fim=fi)
+    return RespostaDeploys(consulta=consulta, deploys=fonte.deploys(servico, ini, fi))

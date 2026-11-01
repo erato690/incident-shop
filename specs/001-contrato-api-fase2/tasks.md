@@ -5,44 +5,44 @@
 
 ## Phase 1: Setup
 
-- [ ] T001 Criar `requirements-dev.txt` (pytest, httpx), fixar versões em `requirements.txt`,
+- [X] T001 Criar `requirements-dev.txt` (pytest, httpx), fixar versões em `requirements.txt`,
   `tests/conftest.py` com fixture `client` e completar `.gitignore` (`.claude-flow/`, `.swarm/`,
   `ruvector.db`, `.pytest_cache/`)
 
 ## Phase 2: Foundational
 
-- [ ] T002 Modelos Pydantic de resposta em `api/modelos.py` (RegistroLog, SerieMetrica, Resumo,
+- [X] T002 Modelos Pydantic de resposta em `api/modelos.py` (RegistroLog, SerieMetrica, Resumo,
   Ponto, Deploy, CenarioPublico, Janela, Consulta*, respostas das 5 rotas)
-- [ ] T003 [P] Interface `FonteDados` e `criar_fonte()` lendo `FONTE_DADOS` em
+- [X] T003 [P] Interface `FonteDados` e `criar_fonte()` lendo `FONTE_DADOS` em
   `api/fontes/__init__.py`; teste em `tests/test_fonte.py` (padrão `simulada`; valor
   desconhecido gera erro claro; `servicos` gera `NotImplementedError` com mensagem da opção 2)
-- [ ] T004 [P] Resolução de janela em `api/janela.py` (cenario, inicio, fim, fuso -03:00, 6 horas,
+- [X] T004 [P] Resolução de janela em `api/janela.py` (cenario, inicio, fim, fuso -03:00, 6 horas,
   inicio < fim); teste em `tests/test_janela.py`
-- [ ] T005 [P] Os 9 deploys reais em `api/deploys.py`; teste em `tests/test_contrato.py` que
+- [X] T005 [P] Os 9 deploys reais em `api/deploys.py`; teste em `tests/test_contrato.py` que
   compara tag, commit, autor e mensagem com o git (pula se não houver `.git`)
-- [ ] T006 Catálogo dos 8 cenários com datas absolutas e efeitos por minuto em `api/cenarios.py`
+- [X] T006 Catálogo dos 8 cenários com datas absolutas e efeitos por minuto em `api/cenarios.py`
   (tabela da spec); semente `crc32(f"{cenario}:{minuto}")`
 
 ## Phase 3: User Story 1 - Logs, métricas e deploys por janela (P1)
 
-- [ ] T007 [US1] `FonteSimulada.logs` (estado saudável + efeitos dos cenários) em
+- [X] T007 [US1] `FonteSimulada.logs` (estado saudável + efeitos dos cenários) em
   `api/fontes/simulada.py` e rota `GET /logs` em `api/main.py`; testes em `tests/test_logs.py`
   (sinal de cada cenário, filtros, `limite`, `truncado`, 404, 422)
-- [ ] T008 [US1] `FonteSimulada.metricas` e `GET /metricas`; testes em `tests/test_metricas.py`
+- [X] T008 [US1] `FonteSimulada.metricas` e `GET /metricas`; testes em `tests/test_metricas.py`
   (um ponto por minuto, unidade, resumo, métrica anormal por cenário, 422 de métrica inválida)
-- [ ] T009 [US1] `GET /deploys` com filtros; testes em `tests/test_deploys.py` (deploy suspeito
+- [X] T009 [US1] `GET /deploys` com filtros; testes em `tests/test_deploys.py` (deploy suspeito
   antes do sintoma; nenhum deploy nos cenários externos; histórico completo sem janela)
-- [ ] T010 [US1] `GET /saude` e `GET /cenarios` (sem causa raiz); testes em
+- [X] T010 [US1] `GET /saude` e `GET /cenarios` (sem causa raiz); testes em
   `tests/test_saude_cenarios.py`
-- [ ] T011 [US1] Teste de determinismo em `tests/test_determinismo.py` (mesma consulta, corpo
+- [X] T011 [US1] Teste de determinismo em `tests/test_determinismo.py` (mesma consulta, corpo
   idêntico; ordem de consultas não muda valores)
 
 ## Phase 4: User Story 2 - Conversas multi-turno (P1)
 
-- [ ] T012 [US2] Fatos de `erro_investigado` (cenário `pool_esgotado`) em `tests/test_conversas.py`
+- [X] T012 [US2] Fatos de `erro_investigado` (cenário `pool_esgotado`) em `tests/test_conversas.py`
   e ajuste dos efeitos (deploy v3.2.0 13:40, sintoma 14:00, `waiting=41`, stack trace
   `PedidoRepository.salvar`)
-- [ ] T013 [US2] Fatos de `escopo_externo` (cenário `gateway_fora`) em `tests/test_conversas.py`
+- [X] T013 [US2] Fatos de `escopo_externo` (cenário `gateway_fora`) em `tests/test_conversas.py`
   e ajuste dos efeitos (502, `SocketTimeoutException`, 503, CPU normal, sem deploy no dia,
   normalização às 10:20 com pico curto de retentativas)
 
