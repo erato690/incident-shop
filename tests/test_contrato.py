@@ -29,3 +29,20 @@ def test_deploy_bate_com_git(d):
     assert _git("log", "-1", "--format=%an", commit) == d.autor
     assert _git("log", "-1", "--format=%s", commit) == d.mensagem
     assert d.tag == f"{d.servico}/v{d.versao}"
+
+
+def test_openapi_igual_ao_arquivo():
+    from scripts.exportar_openapi import DESTINO, gerar_texto
+
+    esperado = DESTINO.read_text(encoding="utf-8") if DESTINO.exists() else ""
+    assert gerar_texto() == esperado, (
+        "docs/openapi.json está desatualizado: rode `python scripts/exportar_openapi.py` "
+        "e versione o arquivo (mudança que quebra o contrato exige nova versão)."
+    )
+
+
+def test_openapi_identifica_o_contrato():
+    from api.main import app
+
+    info = app.openapi()["info"]
+    assert (info["title"], info["version"]) == ("incident-shop", "1.0.0")

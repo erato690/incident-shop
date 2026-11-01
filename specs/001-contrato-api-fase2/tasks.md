@@ -54,7 +54,7 @@
 
 ## Phase 6: User Story 4 - Contrato estável e opção 2 (P2)
 
-- [ ] T015 [US4] `scripts/exportar_openapi.py`, `docs/openapi.json` e teste em
+- [X] T015 [US4] `scripts/exportar_openapi.py`, `docs/openapi.json` e teste em
   `tests/test_contrato.py` (OpenAPI gerado igual ao arquivo)
 - [ ] T016 [P] [US4] Esqueleto `api/fontes/servicos.py` e `docs/opcao2-servicos-reais.md`
   (serviços reais, coleta de logs e métricas, injeção de falha, mesma interface); teste de fonte
