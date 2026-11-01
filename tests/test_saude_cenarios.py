@@ -35,3 +35,12 @@ def test_cenarios_nao_expoe_causa_raiz(client):
 def test_rotas_antigas_removidas(client):
     assert client.post("/cenarios/pool_esgotado").status_code == 404
     assert all(m == {"GET"} for m in [r.methods - {"HEAD", "OPTIONS"} for r in client.app.routes if r.path in {"/logs", "/metricas", "/deploys", "/saude", "/cenarios"}])
+
+
+TERMOS_CAUSA = ["nullpointer", "variável", "certificado", "tls", "vazamento", "oom", "rate limit",
+                "distração", "deploy", "pool", "gateway", "reindex"]
+
+
+def test_titulos_neutros_sem_causa_raiz(client):
+    for c in client.get("/cenarios").json()["cenarios"]:
+        assert not [t for t in TERMOS_CAUSA if t in c["titulo"].lower()], c["titulo"]
