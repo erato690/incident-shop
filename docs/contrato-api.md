@@ -28,7 +28,9 @@ verificado por teste: mudar rota, parâmetro ou campo sem atualizar o arquivo fa
 Regras da janela:
 
 - `/logs` e `/metricas` exigem janela: `cenario` ou o par `inicio` e `fim`. Sem isso: 422.
-- `/deploys` sem janela devolve todo o histórico de deploys.
+- `/deploys` sem janela devolve todo o histórico de deploys. Com só `inicio` ou só `fim` (sem
+  `cenario`), o outro lado fica aberto: `inicio` sozinho devolve do horário em diante e `fim`
+  sozinho devolve tudo antes dele; em `consulta`, o lado ausente aparece como `null`.
 - `inicio` precisa ser menor que `fim`, e a janela pode ter no máximo 6 horas. Fora disso: 422.
 - Com `cenario` e `inicio`/`fim` juntos, a janela explícita vale.
 
@@ -92,7 +94,7 @@ curl -s 'localhost:8000/logs?cenario=pool_esgotado&servico=pedidos-api&nivel=ERR
     "cenario": "pool_esgotado", "servico": "pedidos-api", "nivel": "ERROR",
     "inicio": "2026-10-06T13:30:00-03:00", "fim": "2026-10-06T14:30:00-03:00"
   },
-  "total": 287,
+  "total": 284,
   "truncado": true,
   "logs": [
     {
@@ -138,8 +140,8 @@ curl -s 'localhost:8000/metricas?cenario=pool_esgotado&servico=pedidos-api&metri
       "unidade": "conexões",
       "resumo": {"min": 4.0, "max": 10.0, "media": 7.4, "ultimo": 10.0},
       "pontos": [
-        {"horario": "2026-10-06T13:30:00-03:00", "valor": 5.0},
-        {"horario": "2026-10-06T13:31:00-03:00", "valor": 6.0}
+        {"horario": "2026-10-06T13:30:00-03:00", "valor": 4.0},
+        {"horario": "2026-10-06T13:31:00-03:00", "valor": 4.0}
       ]
     }
   ]
@@ -169,7 +171,7 @@ curl -s 'localhost:8000/deploys?cenario=pool_esgotado'
       "tag": "pedidos-api/v3.2.0",
       "commit": "a356b1f",
       "autor": "Equipe Loja",
-      "mensagem": "perf: reduz pool máximo de 20 para 10 para aliviar o banco"
+      "mensagem": "perf: reduz pool máximo de 20 para 10 para aliviar o db-principal"
     }
   ]
 }
@@ -192,7 +194,8 @@ Os 9 deploys (horário do deploy em produção, depois da criação da tag):
 ## Gravação para o modo offline do agente
 
 O corpo de cada resposta pode ser gravado como está. Formato sugerido para
-`dados_dummy/<cenario>.json` (montado pelo script do agente):
+`dados_dummy/<cenario>.json` (o script `scripts/gravar_dados_dummy.py` deste repositório já
+produz esse formato, ver abaixo):
 
 ```json
 {
@@ -204,6 +207,17 @@ O corpo de cada resposta pode ser gravado como está. Formato sugerido para
 ```
 
 Como as respostas são determinísticas, gravar duas vezes produz arquivos idênticos.
+
+### Script `scripts/gravar_dados_dummy.py`
+
+Grava um arquivo `<pasta>/<id>.json` por cenário de `GET /cenarios` (8 arquivos), com JSON
+indentado em 2 espaços, acentos preservados, ordem dos campos mantida e newline final. Os
+logs são pedidos com `limite=5000`; nenhum cenário passa disso (o maior tem 874 logs).
+
+```bash
+python scripts/gravar_dados_dummy.py dados_dummy                      # app em processo, sem rede
+python scripts/gravar_dados_dummy.py dados_dummy --url http://localhost:8000   # API em execução
+```
 
 ## Política de mudança
 
