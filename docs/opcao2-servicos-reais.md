@@ -32,7 +32,7 @@ flowchart LR
   api[incident-shop API\nFonteServicos] --> loki
   api --> prom
   api --> git[(tags git e registro de deploy)]
-  injetor[POST /injecoes\nfora do contrato 1.0] --> loja
+  injetor[POST /injecoes\nfora do contrato 1.1] --> loja
   agente[incident-agent] --> api
 ```
 
@@ -82,10 +82,10 @@ services:
 | Deploys | Tags git do repositório e registro de deploy do ambiente | `Deploy`: tag, versão, commit, autor, mensagem e horário de entrada em produção |
 | Cenários | Catálogo de injeção (id, título, serviço, sintoma, janela) | `CenarioPublico`, sem causa raiz |
 
-## Injeção de falha: `POST /injecoes` (fora do contrato 1.0)
+## Injeção de falha: `POST /injecoes` (fora do contrato 1.1)
 
 A rota de injeção é uma **adição futura** e não faz parte do contrato 1.1.0, que é só de
-leitura. Ela existiria apenas na opção 2 (acréscimo compatível: sobe o contrato para 1.1.0) e
+leitura. Ela existiria apenas na opção 2 (acréscimo compatível: sobe o contrato para 1.2.0) e
 ficaria protegida, pois muda estado. Corpo previsto: `{"cenario": "<id>"}`. Cada cenário
 vira uma ação sobre os contêineres, e a janela do cenário passa a ser o intervalo real em que
 a falha ficou ativa:
