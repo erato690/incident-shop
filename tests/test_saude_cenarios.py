@@ -13,7 +13,7 @@ JANELAS = {
 def test_saude(client):
     r = client.get("/saude")
     assert r.status_code == 200
-    assert r.json() == {"status": "ok", "fonte": "simulada", "versao_contrato": "1.0.0"}
+    assert r.json() == {"status": "ok", "fonte": "simulada", "versao_contrato": "1.1.0"}
 
 
 def test_cenarios_lista_os_oito_com_janelas(client):

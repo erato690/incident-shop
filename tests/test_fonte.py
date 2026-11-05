@@ -40,6 +40,7 @@ def test_metodos_de_servicos_explicam_a_opcao_2():
         lambda: fonte.logs(None, None, agora, agora),
         lambda: fonte.metricas(None, None, agora, agora),
         lambda: fonte.deploys(None, None, None),
+        lambda: fonte.estatisticas_banco("pool_esgotado", None),
     ):
         with pytest.raises(NotImplementedError, match="opcao2-servicos-reais"):
             chamada()

@@ -1,4 +1,4 @@
-"""API HTTP só de leitura com logs, métricas e deploys da loja fictícia (contrato 1.0.0)."""
+"""API HTTP só de leitura com logs, métricas e deploys da loja fictícia (contrato 1.1.0)."""
 
 from datetime import datetime
 from functools import lru_cache
@@ -9,11 +9,11 @@ from fastapi import Depends, FastAPI, HTTPException, Query
 from api.fontes import FonteDados, criar_fonte
 from api.janela import ErroJanela, resolver_janela
 from api.modelos import (
-    CenarioPublico, ConsultaDeploys, ConsultaLogs, ConsultaMetricas, Metrica, Nivel, RespostaCenarios,
-    RespostaDeploys, RespostaLogs, RespostaMetricas, RespostaSaude, Servico,
+    CenarioPublico, ConsultaDeploys, ConsultaEstatisticasBanco, ConsultaLogs, ConsultaMetricas, Metrica, Nivel, RespostaCenarios,
+    RespostaDeploys, RespostaEstatisticasBanco, RespostaLogs, RespostaMetricas, RespostaSaude, Servico,
 )
 
-VERSAO_CONTRATO = "1.0.0"
+VERSAO_CONTRATO = "1.1.0"
 
 DESCRICAO = (
     "API só de leitura com logs, métricas e deploys da loja fictícia, consumida pelo incident-agent. "
@@ -105,3 +105,22 @@ def deploys(
     ini, fi = _janela(fonte, cenario, inicio, fim, exigir=False)
     consulta = ConsultaDeploys(cenario=cenario, servico=servico, inicio=ini, fim=fi)
     return RespostaDeploys(consulta=consulta, deploys=fonte.deploys(servico, ini, fi))
+
+
+@app.get(
+    "/estatisticas_banco", response_model=RespostaEstatisticasBanco,
+    summary="Retrato do banco db-principal no início do sintoma", responses=NAO_ENCONTRADO,
+)
+def estatisticas_banco(
+    fonte: Fonte, cenario: Annotated[str, Query(description="Id de um cenário de GET /cenarios.")],
+    servico: ServicoQ = None,
+) -> RespostaEstatisticasBanco:
+    """Estatísticas por tabela do db-principal no `sintoma_inicio` do cenário. Com `servico`, só as
+    tabelas que ele usa (`pagamentos-api` e `auth-api` não usam o banco: `tabelas` vazio)."""
+    achado = next((c for c in fonte.cenarios() if c.id == cenario), None)
+    if achado is None:
+        raise HTTPException(status_code=404, detail=f"cenário '{cenario}' não existe")
+    consulta = ConsultaEstatisticasBanco(cenario=cenario, servico=servico, momento=achado.sintoma_inicio)
+    return RespostaEstatisticasBanco(
+        consulta=consulta, banco="db-principal", tabelas=fonte.estatisticas_banco(cenario, servico)
+    )

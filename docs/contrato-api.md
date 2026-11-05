@@ -1,6 +1,6 @@
 # Contrato da API do incident-shop
 
-Versão do contrato: **1.0.0**. Este documento e o arquivo `docs/openapi.json` (OpenAPI, gerado
+Versão do contrato: **1.1.0** (a 1.1.0 acrescenta `GET /estatisticas_banco`; as demais rotas são as da 1.0.0). Este documento e o arquivo `docs/openapi.json` (OpenAPI, gerado
 pelo FastAPI) são a fonte da verdade para as ferramentas do `incident-agent`. O OpenAPI é
 verificado por teste: mudar rota, parâmetro ou campo sem atualizar o arquivo faz o teste falhar.
 
@@ -17,6 +17,8 @@ verificado por teste: mudar rota, parâmetro ou campo sem atualizar o arquivo fa
   horário sem fuso vale como `-03:00`.
 
 ## Parâmetros comuns (`/logs`, `/metricas`, `/deploys`)
+
+(`GET /estatisticas_banco` usa só `cenario` e `servico`, descritos na própria seção.)
 
 | Parâmetro | Tipo | Significado |
 |---|---|---|
@@ -40,7 +42,7 @@ Erros seguem o formato padrão do FastAPI: `{"detail": "..."}` (404) ou
 ## `GET /saude`
 
 ```json
-{"status": "ok", "fonte": "simulada", "versao_contrato": "1.0.0"}
+{"status": "ok", "fonte": "simulada", "versao_contrato": "1.1.0"}
 ```
 
 ## `GET /cenarios`
@@ -191,18 +193,85 @@ Os 9 deploys (horário do deploy em produção, no mesmo horário da tag ou depo
 | 2026-10-22 10:00 | `auth-api/v1.7.9` | `651362e` | Equipe Loja |
 | 2026-10-27 11:25 | `auth-api/v1.8.0` | `7694861` | beatriz.alves |
 
+## `GET /estatisticas_banco`
+
+Retrato do banco `db-principal` no momento do início do sintoma do cenário (`sintoma_inicio`).
+Parâmetros: `cenario` (obrigatório; ausente: 422; desconhecido: 404) e `servico` (opcional, os
+mesmos quatro valores; outro valor: 422). Não há `inicio` nem `fim`: o retrato é de um instante, e
+`consulta.momento` informa qual.
+
+Tabelas, na ordem fixa: `pedidos` (pedidos-api), `itens_pedido` (pedidos-api), `estoque`
+(pedidos-api e estoque-worker) e `reservas_estoque` (estoque-worker). Com `servico`, a lista traz
+só as tabelas que ele usa; `pagamentos-api` e `auth-api` não usam o `db-principal` e recebem
+`tabelas: []`.
+
+| Campo da tabela | Significado |
+|---|---|
+| `tabela`, `servicos` | Nome da tabela e serviços que a usam |
+| `varreduras_sequenciais` | Leituras da tabela inteira, acumuladas na última hora (inteiro) |
+| `varreduras_por_indice` | Leituras pelo índice, acumuladas na última hora (inteiro) |
+| `reindexacao_em_andamento` | `true` enquanto um `REINDEX` roda na tabela |
+| `operacao_em_andamento` | Instrução em execução (por exemplo `REINDEX TABLE estoque`) ou `null` |
+| `ultimo_analyze` | Horário do último `ANALYZE` (atualização das estatísticas do planejador) |
+| `inchaco_indice_pct` | Percentual de espaço inchado nos índices, com 1 casa decimal |
+
+Os valores são determinísticos (sementes por cenário e tabela). Estado saudável: varreduras por
+índice na casa dos milhares, sequenciais na casa das dezenas, sem reindexação, `ANALYZE` às 03:00
+do dia e inchaço entre 5% e 20%. Só `banco_lento_com_deploy` foge disso, na tabela `estoque`:
+reindexação em andamento desde as 15:40 (coerente com os logs do `estoque-worker`), índice
+indisponível durante o `REINDEX` (varreduras por índice caem para menos de 100 e as sequenciais
+sobem para a casa dos milhares) e inchaço antes da reindexação entre 40% e 60%. Nos demais
+cenários, inclusive `pool_esgotado` (cuja causa é o pool, não o banco), o banco aparece saudável.
+
+```bash
+curl -s 'localhost:8000/estatisticas_banco?cenario=banco_lento_com_deploy&servico=estoque-worker'
+```
+
+```json
+{
+  "consulta": {
+    "cenario": "banco_lento_com_deploy", "servico": "estoque-worker",
+    "momento": "2026-10-08T15:47:00-03:00"
+  },
+  "banco": "db-principal",
+  "tabelas": [
+    {
+      "tabela": "estoque",
+      "servicos": ["pedidos-api", "estoque-worker"],
+      "varreduras_sequenciais": 2248,
+      "varreduras_por_indice": 38,
+      "reindexacao_em_andamento": true,
+      "operacao_em_andamento": "REINDEX TABLE estoque",
+      "ultimo_analyze": "2026-10-08T03:00:00-03:00",
+      "inchaco_indice_pct": 41.0
+    },
+    {
+      "tabela": "reservas_estoque",
+      "servicos": ["estoque-worker"],
+      "varreduras_sequenciais": 48,
+      "varreduras_por_indice": 4686,
+      "reindexacao_em_andamento": false,
+      "operacao_em_andamento": null,
+      "ultimo_analyze": "2026-10-08T03:00:00-03:00",
+      "inchaco_indice_pct": 9.0
+    }
+  ]
+}
+```
+
 ## Gravação para o modo offline do agente
 
 O corpo de cada resposta pode ser gravado como está. Formato sugerido para
 `dados_dummy/<cenario>.json` (o script `scripts/gravar_dados_dummy.py` deste repositório já
-produz esse formato, ver abaixo):
+produz esse formato, ver abaixo; a chave `estatisticas_banco` existe desde a 1.1.0):
 
 ```json
 {
   "cenario": { "...": "item de GET /cenarios" },
   "logs": { "...": "corpo de GET /logs?cenario=<id>&limite=5000" },
   "metricas": { "...": "corpo de GET /metricas?cenario=<id>" },
-  "deploys": { "...": "corpo de GET /deploys?cenario=<id>" }
+  "deploys": { "...": "corpo de GET /deploys?cenario=<id>" },
+  "estatisticas_banco": { "...": "corpo de GET /estatisticas_banco?cenario=<id>" }
 }
 ```
 
@@ -222,6 +291,7 @@ python scripts/gravar_dados_dummy.py dados_dummy --url http://localhost:8000   #
 ## Política de mudança
 
 - Acréscimo compatível (campo novo, rota nova, valor novo de enumeração) sobe a versão
-  secundária (1.1.0) e é avisado ao agente.
+  secundária e é avisado ao agente. Exemplo: a 1.1.0 acrescentou a rota `GET /estatisticas_banco`
+  e a chave `estatisticas_banco` no arquivo gravado, sem alterar as cinco rotas da 1.0.0.
 - Remover ou renomear rota, parâmetro ou campo, ou mudar seu tipo ou significado, sobe a versão
   principal (2.0.0) e exige combinar com o agente antes.
