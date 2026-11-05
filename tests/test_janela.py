@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
@@ -27,7 +27,7 @@ def test_entrada_sem_fuso_vale_menos_tres():
 
 
 def test_outro_fuso_e_convertido():
-    utc = timezone.utc
+    utc = UTC
     i, _ = resolver_janela(None, datetime(2026, 10, 6, 17, 0, tzinfo=utc), datetime(2026, 10, 6, 18, 0, tzinfo=utc), True)
     assert (i.hour, i.utcoffset()) == (14, timedelta(hours=-3))
 

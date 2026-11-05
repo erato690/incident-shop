@@ -4,7 +4,16 @@ import os
 from datetime import datetime
 from typing import Protocol
 
-from api.modelos import CenarioPublico, Deploy, Metrica, Nivel, RegistroLog, SerieMetrica, Servico, TabelaBanco
+from api.modelos import (
+    CenarioPublico,
+    Deploy,
+    Metrica,
+    Nivel,
+    RegistroLog,
+    SerieMetrica,
+    Servico,
+    TabelaBanco,
+)
 
 
 class FonteDados(Protocol):

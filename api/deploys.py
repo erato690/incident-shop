@@ -5,6 +5,7 @@ from datetime import datetime
 from api.janela import TZ
 from api.modelos import Deploy
 
+
 def _d(dia: int, hora: int, minuto: int, tag: str, commit: str, autor: str, mensagem: str) -> Deploy:
     servico, versao = tag.split("/v")
     return Deploy(
