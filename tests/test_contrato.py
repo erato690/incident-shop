@@ -45,4 +45,4 @@ def test_openapi_identifica_o_contrato():
     from api.main import app
 
     info = app.openapi()["info"]
-    assert (info["title"], info["version"]) == ("incident-shop", "1.0.0")
+    assert (info["title"], info["version"]) == ("incident-shop", "1.1.0")

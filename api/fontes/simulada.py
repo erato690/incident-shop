@@ -6,11 +6,11 @@ from functools import lru_cache
 from random import Random
 from statistics import fmean
 
-from api.cenarios import CENARIOS, Efeito, cenario_em
+from api.cenarios import CENARIOS, AnomaliaTabela, Efeito, cenario_em
 from api.deploys import DEPLOYS, mensagem_log_deploy
 from api.janela import TZ
 from api.modelos import (
-    CenarioPublico, Deploy, Janela, Metrica, Nivel, Ponto, RegistroLog, Resumo, SerieMetrica, Servico,
+    CenarioPublico, Deploy, Janela, Metrica, Nivel, Ponto, RegistroLog, Resumo, SerieMetrica, Servico, TabelaBanco,
 )
 
 SERVICOS = ("pedidos-api", "pagamentos-api", "estoque-worker", "auth-api")
@@ -34,6 +34,29 @@ BASELINE = {
 }
 CONEXOES = {"pedidos-api": (4, 7), "estoque-worker": (2, 4)}
 MINUTO = timedelta(minutes=1)
+# Tabelas do db-principal e os serviços que as usam (ordem fixa).
+TABELAS_DB = {
+    "pedidos": ("pedidos-api",),
+    "itens_pedido": ("pedidos-api",),
+    "estoque": ("pedidos-api", "estoque-worker"),
+    "reservas_estoque": ("estoque-worker",),
+}
+SAUDAVEL_DB = AnomaliaTabela((10, 90), (2000, 9000), (5.0, 20.0))
+
+
+def _tabela_banco(cenario, tabela: str) -> TabelaBanco:
+    """Estatísticas da tabela no início do sintoma: saudáveis, salvo anomalia do cenário."""
+    a = cenario.banco.get(tabela, SAUDAVEL_DB)
+    rng = Random(zlib.crc32(f"{cenario.id}:{tabela}".encode()))
+    sequenciais = rng.randint(*a.varreduras_sequenciais)
+    por_indice = rng.randint(*a.varreduras_por_indice)
+    inchaco = round(rng.uniform(*a.inchaco_indice_pct), 1)
+    analyze = cenario.sintoma_inicio.replace(hour=3, minute=0, second=0, microsecond=0)
+    return TabelaBanco(
+        tabela=tabela, servicos=list(TABELAS_DB[tabela]), varreduras_sequenciais=sequenciais,
+        varreduras_por_indice=por_indice, reindexacao_em_andamento=a.reindexacao_em_andamento,
+        operacao_em_andamento=a.operacao_em_andamento, ultimo_analyze=analyze, inchaco_indice_pct=inchaco,
+    )
 
 
 def _base(rng: Random, servico: str, metrica: str) -> float:
@@ -130,4 +153,10 @@ class FonteSimulada:
         return [
             d for d in DEPLOYS
             if servico in (None, d.servico) and (inicio is None or d.horario >= inicio) and (fim is None or d.horario < fim)
+        ]
+
+    def estatisticas_banco(self, cenario: str, servico: Servico | None) -> list[TabelaBanco]:
+        c = next(c for c in CENARIOS if c.id == cenario)
+        return [
+            _tabela_banco(c, t) for t, usuarios in TABELAS_DB.items() if servico is None or servico in usuarios
         ]

@@ -32,6 +32,20 @@ class Efeito:
 
 
 @dataclass
+class AnomaliaTabela:
+    """Estado anormal de uma tabela do db-principal no início do sintoma (faixas inclusivas)."""
+
+    varreduras_sequenciais: tuple[int, int]
+    varreduras_por_indice: tuple[int, int]
+    inchaco_indice_pct: tuple[float, float]
+    operacao_em_andamento: str | None = None
+
+    @property
+    def reindexacao_em_andamento(self) -> bool:
+        return bool(self.operacao_em_andamento and self.operacao_em_andamento.startswith("REINDEX"))
+
+
+@dataclass
 class Cenario:
     id: str
     titulo: str
@@ -42,6 +56,8 @@ class Cenario:
     sintoma_fim: datetime
     causa_raiz: str
     efeito: Callable[["Cenario", datetime, Random], Efeito]
+    # tabela do db-principal -> estado anormal; as demais tabelas aparecem saudáveis
+    banco: dict[str, AnomaliaTabela] = field(default_factory=dict)
 
 
 def _t(dia: int, hora: int, minuto: int) -> datetime:
@@ -269,7 +285,12 @@ CENARIOS: list[Cenario] = [
     Cenario("banco_lento_com_deploy", "Lentidão e timeouts no pedidos-api e no estoque-worker", "pedidos-api",
             _t(8, 15, 15), _t(8, 16, 15), _t(8, 15, 47), _t(8, 16, 12),
             "Reindexação no db-principal travou a tabela estoque; o deploy v3.2.1 não é a causa.",
-            _banco_lento),
+            _banco_lento,
+            # Índice indisponível durante o REINDEX: quase tudo vira varredura sequencial.
+            banco={"estoque": AnomaliaTabela(
+                varreduras_sequenciais=(1800, 2600), varreduras_por_indice=(20, 90),
+                inchaco_indice_pct=(40.0, 60.0), operacao_em_andamento="REINDEX TABLE estoque",
+            )}),
     Cenario("deploy_com_bug", "Erros 500 ao confirmar pagamentos", "pagamentos-api",
             _t(14, 14, 15), _t(14, 15, 5), _t(14, 14, 38), _t(14, 15, 3),
             "O deploy v2.14.0 do pagamentos-api causa NullPointerException ao confirmar pagamento sem cupom.",

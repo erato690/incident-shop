@@ -83,7 +83,7 @@ batem com o git). O agente pode consultá-la ao vivo ou usar dados gravados a pa
 
 Documentação:
 
-- [`docs/contrato-api.md`](docs/contrato-api.md): contrato 1.0.0 com parâmetros, regras de
+- [`docs/contrato-api.md`](docs/contrato-api.md): contrato 1.1.0 com parâmetros, regras de
   janela, erros e exemplos.
 - [`docs/openapi.json`](docs/openapi.json): especificação OpenAPI gerada pelo FastAPI; um teste
   garante que ela bate com a API.
@@ -99,6 +99,7 @@ Rotas:
 | `GET /logs` | Logs por janela, com filtros `servico`, `nivel` e `limite` |
 | `GET /metricas` | Séries de um ponto por minuto, com resumo, e filtros `servico` e `metrica` |
 | `GET /deploys` | Deploys reais do repositório, com filtros `servico` e janela |
+| `GET /estatisticas_banco` | Retrato do banco `db-principal` no início do sintoma do cenário (`cenario` obrigatório, filtro `servico`) |
 
 A janela vem de `cenario` (id de `GET /cenarios`) ou do par `inicio` e `fim` (ISO 8601; sem
 fuso vale `-03:00`; no máximo 6 horas). Exemplo:

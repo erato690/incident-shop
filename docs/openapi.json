@@ -3,7 +3,7 @@
   "info": {
     "title": "incident-shop",
     "description": "API só de leitura com logs, métricas e deploys da loja fictícia, consumida pelo incident-agent. Horários em ISO 8601 com fuso -03:00; a mesma requisição devolve sempre o mesmo corpo.",
-    "version": "1.0.0"
+    "version": "1.1.0"
   },
   "paths": {
     "/saude": {
@@ -450,6 +450,75 @@
           }
         }
       }
+    },
+    "/estatisticas_banco": {
+      "get": {
+        "summary": "Retrato do banco db-principal no início do sintoma",
+        "description": "Estatísticas por tabela do db-principal no `sintoma_inicio` do cenário. Com `servico`, só as\ntabelas que ele usa (`pagamentos-api` e `auth-api` não usam o banco: `tabelas` vazio).",
+        "operationId": "estatisticas_banco_estatisticas_banco_get",
+        "parameters": [
+          {
+            "name": "cenario",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Id de um cenário de GET /cenarios.",
+              "title": "Cenario"
+            },
+            "description": "Id de um cenário de GET /cenarios."
+          },
+          {
+            "name": "servico",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "pedidos-api",
+                    "pagamentos-api",
+                    "estoque-worker",
+                    "auth-api"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filtra por serviço.",
+              "title": "Servico"
+            },
+            "description": "Filtra por serviço."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespostaEstatisticasBanco"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "O `cenario` informado não existe."
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -556,6 +625,43 @@
           "fim"
         ],
         "title": "ConsultaDeploys"
+      },
+      "ConsultaEstatisticasBanco": {
+        "properties": {
+          "cenario": {
+            "type": "string",
+            "title": "Cenario"
+          },
+          "servico": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "pedidos-api",
+                  "pagamentos-api",
+                  "estoque-worker",
+                  "auth-api"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Servico"
+          },
+          "momento": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Momento"
+          }
+        },
+        "type": "object",
+        "required": [
+          "cenario",
+          "servico",
+          "momento"
+        ],
+        "title": "ConsultaEstatisticasBanco"
       },
       "ConsultaLogs": {
         "properties": {
@@ -874,6 +980,31 @@
         ],
         "title": "RespostaDeploys"
       },
+      "RespostaEstatisticasBanco": {
+        "properties": {
+          "consulta": {
+            "$ref": "#/components/schemas/ConsultaEstatisticasBanco"
+          },
+          "banco": {
+            "type": "string",
+            "title": "Banco"
+          },
+          "tabelas": {
+            "items": {
+              "$ref": "#/components/schemas/TabelaBanco"
+            },
+            "type": "array",
+            "title": "Tabelas"
+          }
+        },
+        "type": "object",
+        "required": [
+          "consulta",
+          "banco",
+          "tabelas"
+        ],
+        "title": "RespostaEstatisticasBanco"
+      },
       "RespostaLogs": {
         "properties": {
           "consulta": {
@@ -1026,6 +1157,71 @@
           "pontos"
         ],
         "title": "SerieMetrica"
+      },
+      "TabelaBanco": {
+        "properties": {
+          "tabela": {
+            "type": "string",
+            "title": "Tabela"
+          },
+          "servicos": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "pedidos-api",
+                "pagamentos-api",
+                "estoque-worker",
+                "auth-api"
+              ]
+            },
+            "type": "array",
+            "title": "Servicos"
+          },
+          "varreduras_sequenciais": {
+            "type": "integer",
+            "title": "Varreduras Sequenciais"
+          },
+          "varreduras_por_indice": {
+            "type": "integer",
+            "title": "Varreduras Por Indice"
+          },
+          "reindexacao_em_andamento": {
+            "type": "boolean",
+            "title": "Reindexacao Em Andamento"
+          },
+          "operacao_em_andamento": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Operacao Em Andamento"
+          },
+          "ultimo_analyze": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Ultimo Analyze"
+          },
+          "inchaco_indice_pct": {
+            "type": "number",
+            "title": "Inchaco Indice Pct"
+          }
+        },
+        "type": "object",
+        "required": [
+          "tabela",
+          "servicos",
+          "varreduras_sequenciais",
+          "varreduras_por_indice",
+          "reindexacao_em_andamento",
+          "operacao_em_andamento",
+          "ultimo_analyze",
+          "inchaco_indice_pct"
+        ],
+        "title": "TabelaBanco"
       },
       "ValidationError": {
         "properties": {

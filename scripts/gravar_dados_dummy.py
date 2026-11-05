@@ -30,6 +30,7 @@ def _montar(cliente: Cliente, item: dict) -> dict:
         "logs": _consultar(cliente, "/logs", cenario=cenario, limite=5000),
         "metricas": _consultar(cliente, "/metricas", cenario=cenario),
         "deploys": _consultar(cliente, "/deploys", cenario=cenario),
+        "estatisticas_banco": _consultar(cliente, "/estatisticas_banco", cenario=cenario),
     }
 
 

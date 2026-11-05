@@ -4,7 +4,7 @@ import os
 from datetime import datetime
 from typing import Protocol
 
-from api.modelos import CenarioPublico, Deploy, Metrica, Nivel, RegistroLog, SerieMetrica, Servico
+from api.modelos import CenarioPublico, Deploy, Metrica, Nivel, RegistroLog, SerieMetrica, Servico, TabelaBanco
 
 
 class FonteDados(Protocol):
@@ -25,6 +25,8 @@ class FonteDados(Protocol):
     def deploys(
         self, servico: Servico | None, inicio: datetime | None, fim: datetime | None
     ) -> list[Deploy]: ...
+
+    def estatisticas_banco(self, cenario: str, servico: Servico | None) -> list[TabelaBanco]: ...
 
 
 def criar_fonte() -> FonteDados:

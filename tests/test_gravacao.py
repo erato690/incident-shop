@@ -14,9 +14,10 @@ def test_grava_oito_arquivos_no_formato_do_contrato(tmp_path):
     assert len(arquivos) == 8
     assert arquivos == sorted(f"{i}.json" for i in ids)
     dados = json.loads((tmp_path / "pool_esgotado.json").read_text(encoding="utf-8"))
-    assert list(dados) == ["cenario", "logs", "metricas", "deploys"]
+    assert list(dados) == ["cenario", "logs", "metricas", "deploys", "estatisticas_banco"]
     assert dados["cenario"]["id"] == "pool_esgotado"
     assert dados["logs"]["consulta"]["cenario"] == "pool_esgotado"
+    assert dados["estatisticas_banco"]["consulta"]["cenario"] == "pool_esgotado"
 
 
 def test_nenhum_log_truncado(tmp_path):

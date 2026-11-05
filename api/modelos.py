@@ -111,3 +111,26 @@ class ConsultaDeploys(BaseModel):
 class RespostaDeploys(BaseModel):
     consulta: ConsultaDeploys
     deploys: list[Deploy]
+
+
+class ConsultaEstatisticasBanco(BaseModel):
+    cenario: str
+    servico: Servico | None
+    momento: datetime
+
+
+class TabelaBanco(BaseModel):
+    tabela: str
+    servicos: list[Servico]
+    varreduras_sequenciais: int
+    varreduras_por_indice: int
+    reindexacao_em_andamento: bool
+    operacao_em_andamento: str | None
+    ultimo_analyze: datetime
+    inchaco_indice_pct: float
+
+
+class RespostaEstatisticasBanco(BaseModel):
+    consulta: ConsultaEstatisticasBanco
+    banco: str
+    tabelas: list[TabelaBanco]

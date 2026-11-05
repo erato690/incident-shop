@@ -6,7 +6,7 @@ em docs/opcao2-servicos-reais.md. As rotas não mudam: só esta classe substitui
 
 from datetime import datetime
 
-from api.modelos import CenarioPublico, Deploy, Metrica, Nivel, RegistroLog, SerieMetrica, Servico
+from api.modelos import CenarioPublico, Deploy, Metrica, Nivel, RegistroLog, SerieMetrica, Servico, TabelaBanco
 
 MENSAGEM = "FONTE_DADOS=servicos ainda não existe; veja docs/opcao2-servicos-reais.md"
 
@@ -47,4 +47,11 @@ class FonteServicos:
     ) -> list[Deploy]:
         """Deploys das tags git do repositório (tag, commit, autor e mensagem) cruzadas com o
         registro de deploy do ambiente, que dá o horário em que a versão entrou em produção."""
+        raise NotImplementedError(MENSAGEM)
+
+    def estatisticas_banco(self, cenario: str, servico: Servico | None) -> list[TabelaBanco]:
+        """Retrato do db-principal no início do sintoma do cenário, lido do PostgreSQL:
+        `pg_stat_user_tables` (varreduras sequenciais e por índice), `pg_stat_progress_create_index`
+        e `pg_stat_activity` (REINDEX em andamento e a instrução em execução) e a coluna
+        `last_analyze`; o inchaço do índice vem de uma estimativa sobre o tamanho do índice."""
         raise NotImplementedError(MENSAGEM)

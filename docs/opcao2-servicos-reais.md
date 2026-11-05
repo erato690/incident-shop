@@ -11,7 +11,7 @@ eles produzem. Esta entrega **não** implementa a opção 2; entra apenas o esqu
 As rotas dependem só da interface `FonteDados` (`api/fontes/__init__.py`). A variável de
 ambiente `FONTE_DADOS` escolhe a implementação: `simulada` (padrão) ou `servicos`. Com
 `servicos` hoje a API recusa subir, com `NotImplementedError` apontando para este documento.
-Trocar a fonte não muda rotas, parâmetros nem campos: o contrato 1.0.0 continua valendo.
+Trocar a fonte não muda rotas, parâmetros nem campos: o contrato 1.1.0 continua valendo.
 
 ## Arquitetura
 
@@ -84,7 +84,7 @@ services:
 
 ## Injeção de falha: `POST /injecoes` (fora do contrato 1.0)
 
-A rota de injeção é uma **adição futura** e não faz parte do contrato 1.0.0, que é só de
+A rota de injeção é uma **adição futura** e não faz parte do contrato 1.1.0, que é só de
 leitura. Ela existiria apenas na opção 2 (acréscimo compatível: sobe o contrato para 1.1.0) e
 ficaria protegida, pois muda estado. Corpo previsto: `{"cenario": "<id>"}`. Cada cenário
 vira uma ação sobre os contêineres, e a janela do cenário passa a ser o intervalo real em que
@@ -114,3 +114,20 @@ a falha ficou ativa:
 4. A gravação offline (`scripts/gravar_dados_dummy.py --url`) funciona igual contra a fonte
    real, mas a reprodutibilidade byte a byte só vale para a fonte simulada.
 5. `/saude` informa `fonte: "servicos"`, para o agente saber de onde vêm os dados.
+
+## Estatísticas do banco (`GET /estatisticas_banco`)
+
+Na opção 2 o retrato do `db-principal` vem do próprio PostgreSQL, consultado pela
+`FonteServicos.estatisticas_banco`:
+
+- `pg_stat_user_tables`: `seq_scan` e `idx_scan` por tabela (as varreduras sequenciais e por
+  índice; a API reporta a variação na última hora) e `last_analyze` (último `ANALYZE`).
+- `pg_stat_progress_create_index`: indica se há `REINDEX` ou `CREATE INDEX` rodando na tabela
+  (`reindexacao_em_andamento`).
+- `pg_stat_activity`: o texto da instrução em andamento (`operacao_em_andamento`, por exemplo
+  `REINDEX TABLE estoque`).
+- Inchaço do índice: estimativa a partir do tamanho do índice (`pg_relation_size`) contra o
+  tamanho esperado, ou da extensão `pgstattuple`.
+
+Como o retrato é de um instante, o `momento` da consulta é o início do sintoma registrado no
+catálogo de injeção.
