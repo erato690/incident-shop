@@ -4,10 +4,10 @@ Cada cenário tem janela e sintoma em datas absolutas (-03:00) e uma função `e
 o que muda num minuto. A causa raiz é o gabarito: nunca sai pela API.
 """
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from random import Random
-from typing import Callable
 
 from api.janela import TZ
 

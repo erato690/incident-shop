@@ -6,7 +6,16 @@ em docs/opcao2-servicos-reais.md. As rotas não mudam: só esta classe substitui
 
 from datetime import datetime
 
-from api.modelos import CenarioPublico, Deploy, Metrica, Nivel, RegistroLog, SerieMetrica, Servico, TabelaBanco
+from api.modelos import (
+    CenarioPublico,
+    Deploy,
+    Metrica,
+    Nivel,
+    RegistroLog,
+    SerieMetrica,
+    Servico,
+    TabelaBanco,
+)
 
 MENSAGEM = "FONTE_DADOS=servicos ainda não existe; veja docs/opcao2-servicos-reais.md"
 

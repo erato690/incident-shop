@@ -5,7 +5,7 @@ from pathlib import Path
 RAIZ = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(RAIZ))
 
-from scripts.gravar_dados_dummy import gravar  # noqa: E402
+from scripts.gravar_dados_dummy import gravar
 
 
 def test_grava_oito_arquivos_no_formato_do_contrato(tmp_path):

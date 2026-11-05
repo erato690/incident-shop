@@ -9,8 +9,19 @@ from fastapi import Depends, FastAPI, HTTPException, Query
 from api.fontes import FonteDados, criar_fonte
 from api.janela import ErroJanela, resolver_janela
 from api.modelos import (
-    CenarioPublico, ConsultaDeploys, ConsultaEstatisticasBanco, ConsultaLogs, ConsultaMetricas, Metrica, Nivel, RespostaCenarios,
-    RespostaDeploys, RespostaEstatisticasBanco, RespostaLogs, RespostaMetricas, RespostaSaude, Servico,
+    ConsultaDeploys,
+    ConsultaEstatisticasBanco,
+    ConsultaLogs,
+    ConsultaMetricas,
+    Metrica,
+    Nivel,
+    RespostaCenarios,
+    RespostaDeploys,
+    RespostaEstatisticasBanco,
+    RespostaLogs,
+    RespostaMetricas,
+    RespostaSaude,
+    Servico,
 )
 
 VERSAO_CONTRATO = "1.1.0"

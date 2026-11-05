@@ -2,7 +2,7 @@
 
 import zlib
 from datetime import datetime, timedelta
-from functools import lru_cache
+from functools import cache
 from random import Random
 from statistics import fmean
 
@@ -10,7 +10,17 @@ from api.cenarios import CENARIOS, AnomaliaTabela, Efeito, cenario_em
 from api.deploys import DEPLOYS, mensagem_log_deploy
 from api.janela import TZ
 from api.modelos import (
-    CenarioPublico, Deploy, Janela, Metrica, Nivel, Ponto, RegistroLog, Resumo, SerieMetrica, Servico, TabelaBanco,
+    CenarioPublico,
+    Deploy,
+    Janela,
+    Metrica,
+    Nivel,
+    Ponto,
+    RegistroLog,
+    Resumo,
+    SerieMetrica,
+    Servico,
+    TabelaBanco,
 )
 
 SERVICOS = ("pedidos-api", "pagamentos-api", "estoque-worker", "auth-api")
@@ -88,7 +98,7 @@ def _logs_do_minuto(m: datetime, minuto: int, efeito: Efeito, rng: Random) -> li
     return sorted(completos, key=lambda x: x[0])
 
 
-@lru_cache(maxsize=None)
+@cache
 def _estado_do_minuto(minuto: int):
     """Métricas e logs do minuto (epoch/60). Só depende do minuto: determinístico."""
     m = datetime.fromtimestamp(minuto * 60, TZ)
